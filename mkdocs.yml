@@ -1,8 +1,8 @@
-site_name: Campus RAG Assistant
-site_description: Production-style RAG platform for governed campus knowledge
-site_url: https://sandeep-jay.github.io/campus-rag-assistant/
-repo_url: https://github.com/sandeep-jay/campus-rag-assistant
-repo_name: sandeep-jay/campus-rag-assistant
+site_name: BUPT Campus Compass
+site_description: 北邮校园公开资料问答 Agent：Hybrid RAG、版本化记忆、本地模型容错与 MCP 支持请求
+site_url: https://dingzzz05.github.io/bupt-campus-compass/
+repo_url: https://github.com/DINGzzz05/bupt-campus-compass
+repo_name: DINGzzz05/bupt-campus-compass
 edit_uri: edit/main/docs/
 
 validation:
