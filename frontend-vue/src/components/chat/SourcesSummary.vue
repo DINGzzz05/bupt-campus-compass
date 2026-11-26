@@ -32,6 +32,7 @@ const visibleChips = computed(() => props.sources.slice(0, props.maxChips))
 const overflowCount = computed(() => Math.max(0, props.sources.length - props.maxChips))
 
 function chipLabel(source: Source): string {
+  if (source.reviewed_at) return source.short_description
   return source.kb_number?.trim() || 'Source'
 }
 </script>

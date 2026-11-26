@@ -40,11 +40,11 @@ class User(Base):
         nullable=True,
         index=True,
     )
-    username = Column(String, unique=True, index=True, nullable=False)
-    email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=True)
-    auth_provider = Column(String, nullable=False, default='local', index=True)
-    provider_subject = Column(String, nullable=True)
+    username = Column(String().with_variant(String(255), 'mysql', 'mariadb'), unique=True, index=True, nullable=False)
+    email = Column(String().with_variant(String(320), 'mysql', 'mariadb'), unique=True, index=True, nullable=False)
+    hashed_password = Column(String().with_variant(String(255), 'mysql', 'mariadb'), nullable=True)
+    auth_provider = Column(String().with_variant(String(32), 'mysql', 'mariadb'), nullable=False, default='local', index=True)
+    provider_subject = Column(String().with_variant(String(255), 'mysql', 'mariadb'), nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(
         DateTime,

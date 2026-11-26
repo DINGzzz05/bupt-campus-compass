@@ -3,6 +3,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useChatStore } from './chat'
 import { server } from '@/mocks/server'
 import { http, HttpResponse } from 'msw'
+import * as chatApi from '@/api/chat'
 
 const BASE = 'http://localhost:8000'
 
@@ -59,6 +60,25 @@ describe('useChatStore', () => {
     await expect(store.sendMessage('Hello')).rejects.toThrow()
     expect(store.messages.length).toBe(0)
     expect(store.retryableSendContent).toBe('Hello')
+  })
+
+  it('keeps a streamed prefix without automatically requesting another answer', async () => {
+    const stream = vi.spyOn(chatApi, 'streamMessage').mockImplementationOnce(async (_content, _session, onToken) => {
+      onToken('已经收到的内容')
+      throw new Error('connection closed')
+    })
+    const buffered = vi.spyOn(chatApi, 'sendMessage')
+    const store = useChatStore()
+    store.activeSessionId = 1
+    try {
+      await expect(store.sendMessage('查询教务系统')).rejects.toThrow('连接中断')
+      expect(buffered).not.toHaveBeenCalled()
+      expect(store.messages.find((message) => message.role === 'assistant')?.content).toBe('已经收到的内容')
+      expect(store.retryableSendContent).toBe('查询教务系统')
+    } finally {
+      stream.mockRestore()
+      buffered.mockRestore()
+    }
   })
 
   it('retryLastFailedSend() re-sends last failed message and clears retry state', async () => {

@@ -82,7 +82,7 @@ export const useChatStore = defineStore('chat', () => {
    * Send a message using SSE streaming (POST /api/chat/stream).
    * Falls back to the non-streaming endpoint if streaming fails or is unavailable.
    */
-  async function sendMessage(content: string): Promise<void> {
+  async function sendMessage(content: string, deepseekKey?: string): Promise<void> {
     retryableSendContent.value = null
     const optimisticId = generateOptimisticId()
     const optimistic: OptimisticMessage = {
@@ -115,12 +115,14 @@ export const useChatStore = defineStore('chat', () => {
 
     try {
       let streamSucceeded = false
+      let receivedTokens = false
 
       try {
         await chatApi.streamMessage(
           content,
           activeSessionId.value,
           (token) => {
+            receivedTokens = true
             streamingStatus.value = null
             appendToken(token)
           },
@@ -150,6 +152,8 @@ export const useChatStore = defineStore('chat', () => {
                   document_contents: doneEvent.document_contents,
                   source_kind: doneEvent.source_kind,
                   disclaimer: doneEvent.disclaimer ?? null,
+                  stream_warning: doneEvent.stream_warning,
+                  bupt_trace: doneEvent.bupt_trace,
                   kb_resolved: doneEvent.kb_resolved ?? null,
                   router_decision: doneEvent.router_decision ?? null,
                 },
@@ -168,15 +172,27 @@ export const useChatStore = defineStore('chat', () => {
             streamingStatus.value = statusMsg
           },
           researchMode.value,
+          undefined,
+          deepseekKey,
         )
       } catch {
         // Fetch-level failure (network, CORS, etc.) — fall through to fallback
       }
 
       if (!streamSucceeded) {
+        if (receivedTokens) {
+          messages.value.push({
+            id: Date.now(),
+            role: 'assistant',
+            content: streamingMessage.value?.content ?? '',
+            metadata: { stream_warning: '连接中断，以上是已收到的内容。' },
+            created_at: new Date().toISOString(),
+          })
+          throw new Error('连接中断，请手动重试。')
+        }
         // Fallback: non-streaming endpoint
         streamingMessage.value = null
-        const res = await chatApi.sendMessage(content, activeSessionId.value, researchMode.value)
+        const res = await chatApi.sendMessage(content, activeSessionId.value, researchMode.value, deepseekKey)
         messages.value = messages.value.filter(
           (m) => !('isOptimistic' in m) || (m as OptimisticMessage).id !== optimisticId,
         )
@@ -204,10 +220,10 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  async function retryLastFailedSend(): Promise<void> {
+  async function retryLastFailedSend(deepseekKey?: string): Promise<void> {
     if (!retryableSendContent.value) return
     const content = retryableSendContent.value
-    await sendMessage(content)
+    await sendMessage(content, deepseekKey)
   }
 
   function dismissRetry(): void {

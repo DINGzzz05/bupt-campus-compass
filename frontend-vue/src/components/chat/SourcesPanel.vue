@@ -54,7 +54,8 @@ const activeTab = ref<'sources' | 'content'>('sources')
             <span v-if="source.kb_number">KB: {{ source.kb_number }}</span>
             <span v-if="source.kb_category">{{ source.kb_category }}</span>
             <span v-if="source.project">{{ source.project }}</span>
-            <span v-if="typeof source.score === 'number'">Score: {{ source.score.toFixed(3) }}</span>
+            <span v-if="source.reviewed_at">复核日期 {{ source.reviewed_at }}</span>
+            <span v-else-if="typeof source.score === 'number'">Score: {{ source.score.toFixed(3) }}</span>
             <span v-else>Score: N/A</span>
           </div>
           <!-- URL only rendered if it passes safety check -->

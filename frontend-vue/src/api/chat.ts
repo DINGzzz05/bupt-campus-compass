@@ -11,6 +11,20 @@ import type {
   ResearchMode,
 } from './types'
 
+const DEEPSEEK_HEADER = 'X-BUPT-DeepSeek-Key'
+
+export async function checkDeepSeekKey(key: string): Promise<void> {
+  const response = await fetch('/api/bupt/deepseek/check', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { [DEEPSEEK_HEADER]: key },
+  })
+  if (!response.ok) {
+    const result = await response.json().catch(() => null)
+    throw new Error(typeof result?.detail === 'string' ? result.detail : '暂时无法验证 DeepSeek API Key。')
+  }
+}
+
 export async function getSessions(): Promise<ChatSession[]> {
   const { data } = await client.get<ChatSession[]>('/api/chat/sessions')
   return data
@@ -34,12 +48,13 @@ export async function sendMessage(
   content: string,
   sessionId?: number | null,
   researchMode: ResearchMode = 'kb',
+  deepseekKey?: string,
 ): Promise<SendMessageResponse> {
   const { data } = await client.post<SendMessageResponse>('/api/chat/chat', {
     content,
     session_id: sessionId ?? undefined,
     research_mode: researchMode,
-  })
+  }, deepseekKey ? { baseURL: '', headers: { [DEEPSEEK_HEADER]: deepseekKey } } : undefined)
   return data
 }
 
@@ -61,6 +76,7 @@ export async function streamMessage(
   onStatus?: (message: string) => void,
   researchMode: ResearchMode = 'kb',
   signal?: AbortSignal,
+  deepseekKey?: string,
 ): Promise<void> {
   const csrfCookie = document.cookie
     .split('; ')
@@ -72,6 +88,7 @@ export async function streamMessage(
     headers: {
       'Content-Type': 'application/json',
       ...(csrfCookie ? { 'X-CSRF-Token': csrfCookie } : {}),
+      ...(deepseekKey ? { [DEEPSEEK_HEADER]: deepseekKey } : {}),
     },
     credentials: 'include',
     body: JSON.stringify({

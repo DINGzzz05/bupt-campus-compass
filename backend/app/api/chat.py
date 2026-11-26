@@ -30,8 +30,10 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
+from pydantic import SecretStr
 from sqlalchemy.orm import Session
 
+from backend.app.core.bupt_credentials import deepseek_key
 from backend.app.core.config_manager import settings
 from backend.app.core.dev_routes import require_dev_api_routes
 from backend.app.core.logger import logger
@@ -43,11 +45,13 @@ from backend.app.db.database import get_db
 from backend.app.models.user import User
 from backend.app.schemas.chat import ChatMessageCreate, ChatSessionCreate
 from backend.app.schemas.feedback import Feedback, FeedbackCreate
+from backend.app.services import bupt_memory
 from backend.app.services.agents.router import (
     RouterDecision,
     classify_domain,
     is_router_enabled,
 )
+from backend.app.services.bupt_runtime import RuntimeHarness
 from backend.app.services.db import DatabaseService
 from backend.app.services.rag import RAGService
 from backend.app.services.tenant_rag_config import load_tenant_rag_config
@@ -62,6 +66,19 @@ def _stream_status_message(research_mode: str) -> str:
     return 'Searching the knowledge base…'
 
 
+def _validated_research_mode(message: ChatMessageCreate) -> str:
+    mode = getattr(message, 'research_mode', 'kb') or 'kb'
+    campus = settings.BUPT_RAG_ENABLED and not settings.RAG_FORCE_MOCK
+    if campus and (not message.content.strip() or len(message.content) > 8000):
+        raise HTTPException(422, '请发送非空且不超过 8000 字的问题')
+    if mode == 'web' and (not settings.WEB_RESEARCH_ENABLED or campus):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Web research is not enabled on this server',
+        )
+    return mode
+
+
 def _stream_done_payload(session_id: int, metadata: dict) -> dict:
     """SSE done event including web disclaimer, kb_resolved, and router decision."""
     return {
@@ -73,7 +90,29 @@ def _stream_done_payload(session_id: int, metadata: dict) -> dict:
         'disclaimer': metadata.get('disclaimer'),
         'kb_resolved': metadata.get('kb_resolved'),
         'router_decision': metadata.get('router_decision'),
+        **({'bupt_trace': metadata['bupt_trace']} if 'bupt_trace' in metadata else {}),
+        **({'stream_warning': metadata['stream_warning']} if 'stream_warning' in metadata else {}),
     }
+
+
+async def _stream_campus(harness: RuntimeHarness, db_service: DatabaseService):
+    chunks = []
+    async for event in harness.events():
+        if event['type'] == 'token':
+            if not chunks:
+                CHAT_FIRST_TOKEN_LATENCY_SECONDS.observe(time.perf_counter() - harness.started)
+            chunks.append(event['token'])
+        if event['type'] in ('done', 'interrupted'):
+            metadata = event['metadata']
+            db_service.create_chat_message(
+                session_id=harness.session_id,
+                content=''.join(chunks),
+                role='assistant',
+                metadata=metadata,
+            )
+            yield _sse_payload(_stream_done_payload(harness.session_id, metadata))
+            return
+        yield _sse_payload(event)
 
 
 def _maybe_attach_router_decision(metadata: dict[str, Any] | None, query: str) -> dict[str, Any]:
@@ -141,11 +180,15 @@ def _traced_process_query(
     request_id = get_request_id()
     if request_id:
         tags.append(f'request_id:{request_id}')
-    return trace_rag_run(
+    result = trace_rag_run(
         lambda: rag_service.process_query(content, chat_history, tenant_config, research_mode=research_mode),
         run_name=f'chat-session-{session_id}',
         tags=tags,
     )
+    campus_trace = result.get('metadata', {}).get('bupt_trace')
+    if campus_trace is not None:
+        campus_trace.update(session_id=session_id, request_id=request_id)
+    return result
 
 
 def _resolve_or_create_session(
@@ -281,7 +324,9 @@ async def create_chat_message(
     message: ChatMessageCreate,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
+    credential: Annotated[SecretStr | None, Depends(deepseek_key)] = None,
 ) -> dict[str, Any]:
+    research_mode = _validated_research_mode(message)
     logger.info(
         f'Creating message in session {session_id} for user {current_user.username}',
     )
@@ -314,16 +359,18 @@ async def create_chat_message(
     chat_history = _load_chat_history(db_service, session_id)
     rag_service = get_rag_service()
     tenant_config = _resolve_tenant_rag_config(db_service, current_user)
-    _research_mode = getattr(message, 'research_mode', 'kb') or 'kb'
-
-    rag_response = _traced_process_query(
-        rag_service,
-        message.content,
-        chat_history,
-        tenant_config,
-        _research_mode,
-        session_id,
-    )
+    if rag_service.bupt_enabled is True:
+        rag_response = await RuntimeHarness(session_id, user_msg.id, message.content, deepseek_key=credential).result()
+    else:
+        rag_response = await asyncio.to_thread(
+            _traced_process_query,
+            rag_service,
+            message.content,
+            chat_history,
+            tenant_config,
+            research_mode,
+            session_id,
+        )
     logger.debug('RAG processing complete, storing assistant message')
 
     rag_response['metadata'] = _maybe_attach_router_decision(
@@ -383,6 +430,8 @@ async def delete_chat_session(
         )
 
     db_service.delete_chat_session(session_id)
+    if settings.BUPT_RAG_ENABLED:
+        await asyncio.to_thread(bupt_memory.invalidate, session_id)
     logger.info(f'Successfully deleted chat session {session_id}')
     return {'message': 'Chat session deleted successfully'}
 
@@ -392,8 +441,10 @@ async def chat(
     message: ChatMessageCreate,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
+    credential: Annotated[SecretStr | None, Depends(deepseek_key)] = None,
 ) -> dict[str, Any]:
     # Handle chat messages with optional session creation.
+    research_mode = _validated_research_mode(message)
     logger.info(f'Processing chat message from user {current_user.username}')
     db_service = DatabaseService(db)
 
@@ -436,20 +487,18 @@ async def chat(
     tenant_config = _resolve_tenant_rag_config(db_service, current_user)
 
     try:
-        _research_mode = getattr(message, 'research_mode', 'kb') or 'kb'
-        if _research_mode == 'web' and not getattr(settings, 'WEB_RESEARCH_ENABLED', False):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Web research is not enabled on this server',
+        if rag_service.bupt_enabled is True:
+            rag_response = await RuntimeHarness(session_id, user_msg.id, message.content, deepseek_key=credential).result()
+        else:
+            rag_response = await asyncio.to_thread(
+                _traced_process_query,
+                rag_service,
+                message.content,
+                chat_history,
+                tenant_config,
+                research_mode,
+                session_id,
             )
-        rag_response = _traced_process_query(
-            rag_service,
-            message.content,
-            chat_history,
-            tenant_config,
-            _research_mode,
-            session_id,
-        )
 
         rag_response['metadata'] = _maybe_attach_router_decision(
             rag_response.get('metadata'),
@@ -494,13 +543,15 @@ async def chat_stream(  # noqa: PLR0915
     message: ChatMessageCreate,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
+    credential: Annotated[SecretStr | None, Depends(deepseek_key)] = None,
 ) -> StreamingResponse:
     """Stream assistant tokens via Server-Sent Events (SSE)."""
+    _research_mode = _validated_research_mode(message)
     db_service = DatabaseService(db)
 
     session_id = _resolve_or_create_session(message, current_user, db_service)
 
-    db_service.create_chat_message(
+    user_msg = db_service.create_chat_message(
         session_id=session_id,
         content=message.content,
         role='user',
@@ -509,18 +560,16 @@ async def chat_stream(  # noqa: PLR0915
     rag_service = get_rag_service()
     tenant_config = _resolve_tenant_rag_config(db_service, current_user)
 
-    _research_mode = getattr(message, 'research_mode', 'kb') or 'kb'
-    if _research_mode == 'web' and not getattr(settings, 'WEB_RESEARCH_ENABLED', False):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Web research is not enabled on this server',
-        )
-
     async def streaming_body():
         assistant_chunks: list[str] = []
         stream_started = time.perf_counter()
         first_token_recorded = False
         try:
+            if getattr(rag_service, 'bupt_enabled', False) is True:
+                harness = RuntimeHarness(session_id, user_msg.id, message.content, deepseek_key=credential)
+                async for event in _stream_campus(harness, db_service):
+                    yield event
+                return
             if (getattr(settings, 'RAG_ENGINE', 'chain') or 'chain').strip().lower() == 'langgraph':
                 yield _sse_payload({'type': 'status', 'message': _stream_status_message(_research_mode)})
                 await asyncio.sleep(0)

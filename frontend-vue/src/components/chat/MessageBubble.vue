@@ -51,8 +51,11 @@ const disclaimer = computed(() => {
   const meta = getSources(props.message)
   return meta?.disclaimer ?? meta?.agent_turn?.disclaimer ?? meta?.agent_summary?.disclaimer ?? null
 })
+const campusTrace = computed(() => 'metadata' in props.message ? props.message.metadata?.bupt_trace : undefined)
+const streamWarning = computed(() => 'metadata' in props.message ? props.message.metadata?.stream_warning : undefined)
 
 const kbResolved = computed(() => getSources(props.message)?.kb_resolved ?? null)
+const helpdeskModeAvailable = import.meta.env.VITE_HELPDESK_MODE_ENABLED !== 'false'
 const routerDecision = computed(() => getSources(props.message)?.router_decision ?? null)
 const agentTurn = computed(() => getSources(props.message)?.agent_turn ?? null)
 const agentSummary = computed(() => getSources(props.message)?.agent_summary ?? null)
@@ -204,7 +207,13 @@ function formatTime(dateStr: string): string {
           <!-- Escalation prompt + actions live inside the same card so a
                'no KB match' response reads as one assistant turn, not two
                stacked components. -->
-          <HelpdeskActions v-if="showHelpdeskActions && !isStreaming" />
+          <HelpdeskActions v-if="helpdeskModeAvailable && showHelpdeskActions && !isStreaming" />
+          <p v-if="streamWarning && !isStreaming" role="status" class="text-chat-caption text-muted-foreground">{{ streamWarning }}</p>
+          <RouterLink
+            v-if="campusTrace?.run_id && campusTrace.session_id && !isStreaming"
+            :to="`/chat/${campusTrace.session_id}/runs/${campusTrace.run_id}`"
+            target="_blank" rel="noopener noreferrer" class="text-chat-caption text-primary underline"
+          >请求追踪</RouterLink>
         </div>
 
         <p

@@ -23,29 +23,12 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-import os
-
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.types import JSON
 
 from backend.app.db.database import Base
-
-
-# Helper function to determine which JSON type to use based on environment
-def get_json_type():
-    # Use JSON for SQLite tests, JSONB for PostgreSQL
-    if os.environ.get('TESTING', 'False').lower() == 'true':
-        return JSON
-    return JSONB
-
-
-def get_json_column_type():
-    # Use JSON for SQLite tests, JSONB for PostgreSQL
-    if os.environ.get('TESTING', 'False').lower() == 'true':
-        return JSON
-    return JSONB
 
 
 class ChatSession(Base):
@@ -64,7 +47,7 @@ class ChatSession(Base):
         nullable=True,
         index=True,
     )
-    title = Column(String, nullable=False)
+    title = Column(String().with_variant(String(255), 'mysql', 'mariadb'), nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(
         DateTime,
@@ -100,8 +83,8 @@ class ChatMessage(Base):
         index=True,
     )
     content = Column(Text, nullable=False)
-    role = Column(String, nullable=False)
-    message_meta = Column(JSONB, nullable=True)  # Using PostgreSQL JSONB
+    role = Column(String().with_variant(String(32), 'mysql', 'mariadb'), nullable=False)
+    message_meta = Column(JSON().with_variant(JSONB(), 'postgresql'), nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(
         DateTime,

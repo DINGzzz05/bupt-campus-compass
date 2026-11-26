@@ -23,9 +23,10 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-from sqlalchemy import Column, DateTime, Integer, String, func
+from sqlalchemy import Column, DateTime, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
+from sqlalchemy.types import JSON
 
 from backend.app.db.database import Base
 
@@ -34,9 +35,9 @@ class Tenant(Base):
     __tablename__ = 'tenant'
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True, nullable=False)
-    description = Column(String, nullable=True)
-    rag_config = Column(JSONB, nullable=True)
+    name = Column(String().with_variant(String(255), 'mysql', 'mariadb'), unique=True, index=True, nullable=False)
+    description = Column(String().with_variant(Text(), 'mysql', 'mariadb'), nullable=True)
+    rag_config = Column(JSON().with_variant(JSONB(), 'postgresql'), nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(
         DateTime,

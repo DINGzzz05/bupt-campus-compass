@@ -136,6 +136,13 @@ class DefaultSettings(BaseSettings):
     RAG_PROVIDER: str | None = None  # single shortcut for both LLM and retriever
     LLM_PROVIDER: str = 'mock'
     RETRIEVER_PROVIDER: str = 'mock'
+    BUPT_RAG_ENABLED: bool = False
+    BUPT_OLLAMA_ENABLED: bool = False
+    BUPT_OLLAMA_URL: str = 'http://127.0.0.1:11434'
+    BUPT_CHAT_MODEL: str = 'qwen2.5:7b'
+    BUPT_EMBEDDING_MODEL: str = 'bge-m3'
+    BUPT_CHROMA_PATH: str = '.bupt-local/chroma'
+    BUPT_REDIS_URL: str | None = None
 
     # RAG orchestration: chain (LangChain) | langgraph
     RAG_ENGINE: str = 'chain'

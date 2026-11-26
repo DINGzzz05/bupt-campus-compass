@@ -10,17 +10,22 @@ import { trackHelpdeskAgentEvent } from '@/utils/telemetry'
 import MessageList from '@/components/chat/MessageList.vue'
 import ChatInput from '@/components/chat/ChatInput.vue'
 import TypingIndicator from '@/components/chat/TypingIndicator.vue'
+import CampusControls from '@/components/chat/CampusControls.vue'
+import DeepSeekControls from '@/components/chat/DeepSeekControls.vue'
 
 const route = useRoute()
 const router = useRouter()
 const chatStore = useChatStore()
 const helpdeskStore = useHelpdeskStore()
+const helpdeskModeAvailable = import.meta.env.VITE_HELPDESK_MODE_ENABLED !== 'false'
+const campusRuntimeAvailable = import.meta.env.VITE_BUPT_RUNTIME === 'true'
 const { messages, streamingMessage, streamingStatus, isSendingMessage, isLoading, activeSessionId, retryableSendContent, researchMode, chatMode } =
   storeToRefs(chatStore)
 const { agentRunning, agentStatus, agentSteps, activeTurn } = storeToRefs(helpdeskStore)
 
 const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null)
 const messageListRef = ref<HTMLElement | null>(null)
+const deepseekKey = ref('')
 
 async function scrollToBottom(): Promise<void> {
   await nextTick()
@@ -88,7 +93,8 @@ async function handleSend(content: string): Promise<void> {
     if (chatMode.value === 'agent') {
       await sendAgentMessage(content)
     } else {
-      await chatStore.sendMessage(content)
+      if (deepseekKey.value) await chatStore.sendMessage(content, deepseekKey.value)
+      else await chatStore.sendMessage(content)
       if (activeSessionId.value && !route.params.sessionId) {
         await router.replace(`/chat/${activeSessionId.value}`)
       }
@@ -119,7 +125,8 @@ async function setMode(mode: 'ask' | 'agent'): Promise<void> {
 
 async function handleRetrySend(): Promise<void> {
   try {
-    await chatStore.retryLastFailedSend()
+    if (deepseekKey.value) await chatStore.retryLastFailedSend(deepseekKey.value)
+    else await chatStore.retryLastFailedSend()
     if (activeSessionId.value && !route.params.sessionId) {
       await router.replace(`/chat/${activeSessionId.value}`)
     }
@@ -142,7 +149,9 @@ function handlePromptSelected(prompt: string): void {
     :aria-busy="isLoading || isSendingMessage || agentRunning"
     class="flex flex-col flex-1 min-h-0 overflow-hidden bg-background"
   >
-    <div class="flex-shrink-0 border-b border-border bg-background/95 px-4 py-2">
+    <DeepSeekControls v-if="campusRuntimeAvailable" v-model="deepseekKey" />
+    <CampusControls v-if="campusRuntimeAvailable && activeSessionId" :key="activeSessionId" :session-id="activeSessionId" />
+    <div v-if="helpdeskModeAvailable" class="flex-shrink-0 border-b border-border bg-background/95 px-4 py-2">
       <div class="chat-container flex items-center justify-between gap-3">
         <div>
           <p class="text-chat-label text-foreground">Chat mode</p>

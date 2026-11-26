@@ -17,6 +17,12 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/OAuthHandoffView.vue'),
   },
   {
+    path: '/chat/:sessionId/runs/:runId',
+    name: 'campus-run',
+    component: () => import('@/views/CampusRunView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/chat/:sessionId?',
     name: 'chat',
     component: () => import('@/views/ChatView.vue'),

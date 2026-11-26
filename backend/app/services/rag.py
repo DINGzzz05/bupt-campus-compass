@@ -39,6 +39,7 @@ from langchain.schema import AIMessage, HumanMessage
 
 from backend.app.core.config_manager import settings
 from backend.app.core.log_redaction import query_log_preview
+from backend.app.services import bupt_knowledge
 from backend.app.services.graph.runner import run_rag_graph
 from backend.app.services.providers import get_llm_provider, get_retriever_provider
 from backend.app.services.providers.llm.aws import AwsLlmProvider
@@ -95,6 +96,9 @@ class RAGService:
         self.is_mock = False
         self.llm_provider = None
         self.retriever_provider = None
+        self.bupt_enabled = settings.BUPT_RAG_ENABLED and not settings.RAG_FORCE_MOCK and bedrock_service is None and bedrock_client is None
+        if self.bupt_enabled:
+            return
 
         try:
             if bedrock_service is not None or bedrock_client is not None:
@@ -656,6 +660,27 @@ Standalone Question (one line only, no labels):""")
         logger.info('Processing query: %s', query_log_preview(query))
         logger.debug('Processing query full: %r', query)
         start_time = time.time()
+
+        if getattr(self, 'bupt_enabled', False):
+            documents, trace = bupt_knowledge.search(query)
+            response, generation = bupt_knowledge.answer(query, documents)
+            sources, document_contents = self._format_source_documents(documents)
+            for source, document in zip(sources, documents, strict=True):
+                source.update({key: document.metadata[key] for key in ('reviewed_at', 'status', 'content_sha256')})
+            return {
+                'message': response,
+                'metadata': {
+                    'sources': sources,
+                    'document_contents': document_contents,
+                    'source_kind': 'kb',
+                    'kb_resolved': bool(documents),
+                    'bupt_trace': {
+                        **trace,
+                        'generation': generation,
+                        'elapsed_ms': round((time.time() - start_time) * 1000, 2),
+                    },
+                },
+            }
 
         if self.is_mock:
             mock_response = self._create_mock_response(query, tenant_config)

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MessageCircle, Sparkles } from 'lucide-vue-next'
+import { MessageCircle } from 'lucide-vue-next'
 import type { DisplayMessage, StreamingMessage } from '@/api/types'
 import MessageBubble from './MessageBubble.vue'
 
@@ -12,7 +12,7 @@ defineEmits<{
   'prompt-selected': [prompt: string]
 }>()
 
-const samplePrompts = ['How do I submit an assignment in the learning platform?', 'How do I check my grades?', 'How do I join a course discussion?', 'How do I download course files?']
+const samplePrompts = ['图书馆电子资源怎么在校外访问？', '北邮本科选课从哪里进？', '新生报到通知在哪里看？', '毕业去向信息怎么审核？']
 </script>
 
 <template>
@@ -34,17 +34,13 @@ const samplePrompts = ['How do I submit an assignment in the learning platform?'
             <MessageCircle class="h-7 w-7" aria-hidden="true" />
           </div>
           <div>
-            <h2 class="text-chat-display text-foreground">Campus knowledge assistant</h2>
+            <h2 class="text-chat-display text-foreground">北邮校园指南</h2>
             <p class="text-muted-foreground text-chat-body mt-2">
-              Ask about courses, assignments, grades, and campus resources. Answers are grounded in your knowledge base—not general web search.
+              查询教务、科研、校园生活和学生服务，点击回答下方的来源核对官网原文。
             </p>
           </div>
-          <div class="rounded-lg border border-border bg-muted/30 px-3 py-2 text-chat-caption text-muted-foreground text-left">
-            <Sparkles class="inline h-3.5 w-3.5 mr-1 -mt-0.5 text-primary" aria-hidden="true" />
-            Off-topic questions may be declined based on your organization's scope.
-          </div>
           <div class="grid grid-cols-1 gap-2 text-left">
-            <p class="text-chat-label text-muted-foreground">Try asking</p>
+            <p class="text-chat-label text-muted-foreground">试试这些问题</p>
             <button
               v-for="prompt in samplePrompts"
               :key="prompt"

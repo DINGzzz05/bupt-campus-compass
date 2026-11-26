@@ -2,17 +2,21 @@
 Copyright ©2025. The Regents of the University of California (Regents). All Rights Reserved.
 """
 
+import asyncio
+from contextlib import asynccontextmanager, suppress
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 from starlette.middleware.sessions import SessionMiddleware
 
-from backend.app.api import auth, chat, helpdesk, oauth_routes
+from backend.app.api import auth, bupt, chat, helpdesk, oauth_routes
 from backend.app.core.config_manager import settings
 from backend.app.core.logger import initialize_logger, logger
 from backend.app.core.metrics import metrics_middleware, metrics_response, refresh_db_pool_metrics
 from backend.app.core.request_context import RequestContextMiddleware
 from backend.app.db.database import Base, engine
+from backend.app.services.bupt_actions import worker
 
 initialize_logger()
 
@@ -32,13 +36,27 @@ _openapi = '/api/openapi.json' if settings.ENABLE_OPENAPI_DOCS else None
 _docs = '/api/docs' if settings.ENABLE_OPENAPI_DOCS else None
 _redoc = '/api/redoc' if settings.ENABLE_OPENAPI_DOCS else None
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    task = asyncio.create_task(worker()) if settings.BUPT_RAG_ENABLED else None
+    try:
+        yield
+    finally:
+        if task:
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
+
+
 app = FastAPI(
-    title='Campus AI Assistant API',
+    title='BUPT Campus Compass API' if settings.BUPT_RAG_ENABLED else 'Campus AI Assistant API',
     description='API for the Campus AI Assistant with RAG capabilities.',
     version='1.0.0',
     docs_url=_docs,
     redoc_url=_redoc,
     openapi_url=_openapi,
+    lifespan=lifespan,
 )
 
 initialize_logger(app)
@@ -74,6 +92,7 @@ app.include_router(auth.router, prefix='/api/auth', tags=['auth'])
 app.include_router(oauth_routes.router, prefix='/api/auth/oauth', tags=['auth'])
 app.include_router(chat.router, prefix='/api/chat', tags=['chat'])
 app.include_router(helpdesk.router)
+app.include_router(bupt.router)
 logger.info('API setup complete')
 
 

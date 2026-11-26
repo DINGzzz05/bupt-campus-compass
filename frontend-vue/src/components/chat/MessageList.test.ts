@@ -35,6 +35,6 @@ describe('MessageList', () => {
 
   it('shows empty state when no messages', () => {
     renderWithProviders(MessageList, { props: { messages: [] } })
-    expect(screen.getByText(/campus knowledge assistant/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '北邮校园指南' })).toBeInTheDocument()
   })
 })

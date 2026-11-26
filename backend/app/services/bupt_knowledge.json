@@ -1,0 +1,147 @@
+[
+  {
+    "id": "bupt-library-remote",
+    "title": "图书馆电子资源校外访问",
+    "category": "科研",
+    "url": "https://libportal.bupt.edu.cn/a/fuwu/shangwangfuwu/",
+    "reviewed_at": "2026-11-26",
+    "status": "ACTIVE",
+    "keywords": [
+      "校外访问",
+      "校外查论文",
+      "电子资源",
+      "校外访问数据库",
+      "WebVPN",
+      "VPN",
+      "图书馆数据库",
+      "远程访问"
+    ],
+    "content": "在校师生可按图书馆的校外访问指南使用学校 WebVPN 或校园 VPN 访问图书馆电子资源。具体入口、登录方式以及不同资源的使用条件见图书馆页面。",
+    "version": 1
+  },
+  {
+    "id": "bupt-library-collections",
+    "title": "图书馆馆藏与借阅",
+    "category": "校园生活",
+    "url": "https://libportal.bupt.edu.cn/a/ruguanzhinan/guancangfenbu/",
+    "reviewed_at": "2026-11-26",
+    "status": "ACTIVE",
+    "keywords": [
+      "借书",
+      "馆藏",
+      "借阅",
+      "纸质图书",
+      "阅览室",
+      "图书馆借书"
+    ],
+    "content": "图书馆的馆藏分布页面按楼层列出了阅览室和服务点。找纸质书时，可以先从图书馆网站进入馆藏目录查书，再用楼层分布确认馆藏位置。",
+    "version": 1
+  },
+  {
+    "id": "bupt-academic-system",
+    "title": "本科教务系统入口",
+    "category": "学业",
+    "url": "https://jwbs.bupt.edu.cn/xsfw.htm",
+    "reviewed_at": "2026-11-26",
+    "status": "ACTIVE",
+    "keywords": [
+      "选课",
+      "查成绩",
+      "课表",
+      "本科教务",
+      "教务系统",
+      "课程表"
+    ],
+    "content": "登录北京邮电大学本科教务管理系统可办理本科生教务相关事项。教务部学生服务页提供本科教务管理系统入口，具体事项开放时间请查看对应学期通知。",
+    "version": 1
+  },
+  {
+    "id": "bupt-innovation",
+    "title": "大学生创新创业训练平台",
+    "category": "科研",
+    "url": "https://jwbs.bupt.edu.cn/xsfw.htm",
+    "reviewed_at": "2026-11-26",
+    "status": "ACTIVE",
+    "keywords": [
+      "大创",
+      "创新创业训练",
+      "创新训练",
+      "创新创业计划",
+      "科研训练"
+    ],
+    "content": "北邮教务部学生服务页列有北京邮电大学大学生创新创业计划训练平台。大创项目申报安排和材料要求以当期通知与平台提示为准。",
+    "version": 1
+  },
+  {
+    "id": "bupt-orientation",
+    "title": "迎新网与新生报到",
+    "category": "校园生活",
+    "url": "https://welcome.bupt.edu.cn/",
+    "reviewed_at": "2026-11-26",
+    "status": "ACTIVE",
+    "keywords": [
+      "迎新",
+      "入学报到",
+      "新生报到",
+      "新生通知",
+      "查询学号",
+      "学号查询"
+    ],
+    "content": "北邮迎新网分别汇总本科生和研究生迎新通知，并提供本科生学号查询入口。报到时间、地点和所需材料请以对应年级的通知为准。",
+    "version": 1
+  },
+  {
+    "id": "bupt-campus-wifi",
+    "title": "校园网使用说明",
+    "category": "校园生活",
+    "url": "https://welcome.bupt.edu.cn/info/1002/1001.htm",
+    "reviewed_at": "2026-11-26",
+    "status": "ACTIVE",
+    "keywords": [
+      "校园网",
+      "校园无线",
+      "WiFi",
+      "无线网络",
+      "BUPT-portal",
+      "BUPT-mobile",
+      "联网"
+    ],
+    "content": "北邮迎新网公布的校园无线网络名称为 BUPT-portal 和 BUPT-mobile。初次使用请按照数智化部的校园网说明进行账号登录和密码修改。",
+    "version": 1
+  },
+  {
+    "id": "bupt-employment",
+    "title": "毕业去向信息审核",
+    "category": "学生发展",
+    "url": "https://xsc.bupt.edu.cn/info/1099/1523.htm",
+    "reviewed_at": "2026-11-26",
+    "status": "ACTIVE",
+    "keywords": [
+      "毕业去向",
+      "去向登记",
+      "就业去向",
+      "去向审核",
+      "毕业信息审核"
+    ],
+    "content": "毕业去向信息审核通过北京邮电大学就业信息网办理。按学生处指南，申请人填写信息并上传材料，随后由学院辅导员审核，再由学校就业与创业指导中心审核。",
+    "version": 1
+  },
+  {
+    "id": "bupt-student-affairs",
+    "title": "学生处资助与心理支持",
+    "category": "学生发展",
+    "url": "https://xsc.bupt.edu.cn/jgjs/kszx.htm",
+    "reviewed_at": "2026-11-26",
+    "status": "ACTIVE",
+    "keywords": [
+      "学生资助",
+      "助学贷款",
+      "助学金",
+      "勤工助学",
+      "心理咨询",
+      "心理支持"
+    ],
+    "content": "北邮学生处公开了各科室和中心的职责及联系方式。助学申请可查看学生资助相关科室，心理支持可查看负责心理素质教育的中心。具体流程和办公时间以学生处公布的信息为准。",
+    "version": 1
+  }
+]

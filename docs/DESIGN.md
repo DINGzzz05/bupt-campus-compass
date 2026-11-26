@@ -259,7 +259,7 @@ Prompts and topic guardrails are **generic by default** and **hydrated per tenan
 }
 ```
 
-Apply after migration `0002`: `alembic upgrade head`. Example campus sample (optional): [samples/acme-university/tenant_rag_config.json](../samples/acme-university/tenant_rag_config.json) — generic campus profile (Canvas LMS, LTI, accessibility, inclusive teaching). Copy into a tenant's `rag_config` or use as a seed; not loaded automatically.
+Apply after migration `0002` with `alembic upgrade head`. See [TenantRagConfig](../backend/app/services/tenant_rag_config.py) for accepted profile fields.
 
 Live answers come from your **Bedrock Knowledge Base** (vectors in **OpenSearch Serverless**) or **Azure AI Search** index — point provider env vars at your corpus; prompts do not embed institution-specific articles in the repo.
 

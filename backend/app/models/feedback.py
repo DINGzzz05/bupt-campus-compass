@@ -46,12 +46,12 @@ class Feedback(Base):
         index=True,
     )
     feedback_type = Column(
-        String,
+        String().with_variant(String(32), 'mysql', 'mariadb'),
         nullable=False,
     )  # 'thumbs_up', 'thumbs_down', 'rating'
     rating = Column(Integer, nullable=True)  # 1-4 star rating
     comment = Column(Text, nullable=True)
-    run_id = Column(String, nullable=True)  # For LangSmith tracing
+    run_id = Column(String().with_variant(String(255), 'mysql', 'mariadb'), nullable=True)  # For LangSmith tracing
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
 
     # Relationships

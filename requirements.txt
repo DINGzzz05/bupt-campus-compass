@@ -25,6 +25,7 @@ fakeredis>=2.21.0
 fastapi>=0.115.0,<0.116.0
 gunicorn>=22.0.0,<27.0.0
 httpx>=0.27.0,<0.29.0  # FastAPI + LangGraph
+mcp>=1.12.4,<1.13
 langchain-aws>=0.2.15
 langchain-community==0.3.27
 langchain-openai>=0.2
@@ -43,7 +44,7 @@ prometheus-client>=0.20.0
 psycopg[binary,pool]>=3.2,<4
 psycopg2-binary==2.9.9
 pydantic-settings>=2.4.0,<3.0.0
-pydantic>=2.7.4,<3.0.0
+pydantic>=2.11,<2.13  # MCP 1.12 uses a Pydantic helper removed in later versions
 pytest-asyncio==0.21.1
 pytest-cov==4.1.0
 pytest-mock==3.12.0

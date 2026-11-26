@@ -23,6 +23,7 @@ export interface Source {
   short_description: string
   project: string
   score?: number
+  reviewed_at?: string
 }
 
 export interface DocContent {
@@ -38,6 +39,12 @@ export interface RouterDecision {
   reason?: string
 }
 
+export interface CampusTrace {
+  run_id?: string
+  session_id?: number
+  generation: string
+}
+
 export interface ChatMessage {
   id: number
   content: string
@@ -47,6 +54,8 @@ export interface ChatMessage {
     document_contents?: DocContent[]
     source_kind?: ResearchMode
     disclaimer?: string | null
+    stream_warning?: string
+    bupt_trace?: CampusTrace
     kb_resolved?: boolean | null
     // Campus router decision (Phase 5). Present only when
     // ``CAMPUS_ROUTER_ENABLED`` is true on the backend; UI promotes the
@@ -73,6 +82,8 @@ export interface ChatMessage {
       document_contents?: DocContent[]
       source_kind?: ResearchMode
       disclaimer?: string | null
+      stream_warning?: string
+      bupt_trace?: CampusTrace
     }
   }
   created_at: string
@@ -155,6 +166,8 @@ export type StreamEvent =
       session_id: number
       source_kind?: ResearchMode
       disclaimer?: string | null
+      stream_warning?: string
+      bupt_trace?: CampusTrace
       kb_resolved?: boolean | null
       router_decision?: RouterDecision | null
     }

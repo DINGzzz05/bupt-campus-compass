@@ -25,7 +25,7 @@ ENHANCEMENTS, OR MODIFICATIONS.
 
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Integer, create_engine
+from sqlalchemy import Column, DateTime, Integer, create_engine, event
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from backend.app.core.config_manager import settings
@@ -37,6 +37,13 @@ engine = create_engine(
     max_overflow=settings.SQLALCHEMY_MAX_OVERFLOW,
     pool_pre_ping=True,
 )
+
+if engine.dialect.name == 'sqlite':
+
+    @event.listens_for(engine, 'connect')
+    def _enable_sqlite_foreign_keys(dbapi_connection, _connection_record):
+        dbapi_connection.execute('PRAGMA foreign_keys=ON')
+
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
