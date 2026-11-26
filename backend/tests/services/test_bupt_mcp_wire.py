@@ -1,6 +1,8 @@
 """Test the real MCP initialize, discovery, validation and tool protocol."""
 
+import os
 import sys
+from pathlib import Path
 
 import pytest
 from mcp import ClientSession, StdioServerParameters
@@ -25,10 +27,17 @@ async def test_support_mcp_over_stdio(tmp_path):
         with Session(engine) as db, db.begin():
             db.add(User(id=7, username='mcp-test', email='protocol@example.com'))
             db.add(ChatSession(id=5, user_id=7, title='MCP protocol test'))
+        project_root = Path(__file__).resolve().parents[3]
         params = StdioServerParameters(
             command=sys.executable,
             args=['-m', 'backend.app.services.bupt_actions'],
-            env={'SQLALCHEMY_DATABASE_URI': uri, 'SECRET_KEY': settings.SECRET_KEY.get_secret_value()},
+            cwd=str(project_root),
+            env={
+                **os.environ,
+                'PYTHONPATH': str(project_root),
+                'SQLALCHEMY_DATABASE_URI': uri,
+                'SECRET_KEY': settings.SECRET_KEY.get_secret_value(),
+            },
         )
         token = signed_draft(7, 5, 'Intermittent campus Wi-Fi access', None)
         async with stdio_client(params) as (reader, writer), ClientSession(reader, writer) as client:

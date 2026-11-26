@@ -96,7 +96,12 @@ class RAGService:
         self.is_mock = False
         self.llm_provider = None
         self.retriever_provider = None
-        self.bupt_enabled = settings.BUPT_RAG_ENABLED and not settings.RAG_FORCE_MOCK and bedrock_service is None and bedrock_client is None
+        # Only the real boolean enables the campus path. Tests patch ``settings``
+        # with a MagicMock, whose attributes are truthy but are not ``True``.
+        bupt_flag = getattr(settings, 'BUPT_RAG_ENABLED', False)
+        self.bupt_enabled = (
+            bupt_flag is True and not bool(getattr(settings, 'RAG_FORCE_MOCK', False)) and bedrock_service is None and bedrock_client is None
+        )
         if self.bupt_enabled:
             return
 

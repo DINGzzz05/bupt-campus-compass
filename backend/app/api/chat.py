@@ -359,7 +359,7 @@ async def create_chat_message(
     chat_history = _load_chat_history(db_service, session_id)
     rag_service = get_rag_service()
     tenant_config = _resolve_tenant_rag_config(db_service, current_user)
-    if rag_service.bupt_enabled is True:
+    if getattr(rag_service, 'bupt_enabled', False) is True:
         rag_response = await RuntimeHarness(session_id, user_msg.id, message.content, deepseek_key=credential).result()
     else:
         rag_response = await asyncio.to_thread(
@@ -487,7 +487,7 @@ async def chat(
     tenant_config = _resolve_tenant_rag_config(db_service, current_user)
 
     try:
-        if rag_service.bupt_enabled is True:
+        if getattr(rag_service, 'bupt_enabled', False) is True:
             rag_response = await RuntimeHarness(session_id, user_msg.id, message.content, deepseek_key=credential).result()
         else:
             rag_response = await asyncio.to_thread(
